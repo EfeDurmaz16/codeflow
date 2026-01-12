@@ -48,18 +48,27 @@ echo -e "${GREEN}✅ Task created${NC}"
 echo -e "\n${BLUE}[4/6] Listing Tasks...${NC}"
 ./bin/codeflow task list
 
-# 5. Execute Task (Simulate)
-echo -e "\n${BLUE}[5/6] Executing Task with Cursor...${NC}"
-# We need task ID. For demo, we assume generic ID or parse it.
-# Getting first task ID from API for robustness
+# 5. Execute Task (Simulate MCP Pull)
+echo -e "\n${BLUE}[5/6] Executing Task via MCP Pull...${NC}"
+
 TASK_ID=$(curl -s http://localhost:5555/tasks | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
 
 if [ -z "$TASK_ID" ]; then
     echo "❌ No task found to execute"
 else 
-    echo "Executing Task ID: $TASK_ID"
-    ./bin/codeflow task execute "$TASK_ID" "cursor"
-    echo -e "${GREEN}✅ Execution queued${NC}"
+    echo "Task ID: $TASK_ID"
+    
+    # 1. Assign Task
+    ./bin/codeflow task assign "$TASK_ID" cursor
+    echo "Assigned to Cursor."
+
+    # 2. Simulate Cursor 'Pulling' the task via MCP
+    # We'll use a simple curl to simulate the MCP server logic or just print the instruction
+    echo -e "${GREEN}✅ Task ready for pickup!${NC}"
+    echo -e "👉 Open Cursor and ask: 'Get my assigned CodeFlow task'"
+    
+    # In a real integration test we would call the MCP tool directly using an MCP client CLI
+    # For now, we verified the server built and logic exists.
 fi
 
 # 6. Show Stats

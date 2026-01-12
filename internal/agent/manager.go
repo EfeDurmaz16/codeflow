@@ -77,6 +77,9 @@ func (m *Manager) RegisterAgent(config parser.AgentConfig, apiKey string) error 
 		}
 		agent.claudeClient = claude.NewClient(apiKey, opts...)
 		agent.Status = StatusConnected
+	case "ide_agent":
+		// IDE agents are external and always considered connected upon registration
+		agent.Status = StatusConnected
 	default:
 		// Other providers will be added later
 		agent.Status = StatusDisconnected
@@ -217,6 +220,15 @@ func (m *Manager) Execute(ctx context.Context, agentID string, prompt string) (s
 			return "", fmt.Errorf("claude client not initialized")
 		}
 		return agent.claudeClient.Chat(ctx, prompt)
+	case "ide_agent":
+		// For IDE agents, we simulate execution or wait for external callback
+		// For this demo, we'll simulate a delay and success
+		select {
+		case <-time.After(3 * time.Second):
+			return fmt.Sprintf("Executed task in %s: %s", agent.Config.Model, "Success"), nil
+		case <-ctx.Done():
+			return "", ctx.Err()
+		}
 	default:
 		return "", fmt.Errorf("unsupported provider: %s", agent.Config.Provider)
 	}
@@ -249,6 +261,14 @@ func (m *Manager) ExecuteWithSystem(ctx context.Context, agentID, system, prompt
 			return "", fmt.Errorf("claude client not initialized")
 		}
 		return agent.claudeClient.ChatWithSystem(ctx, system, prompt)
+	case "ide_agent":
+		// Mock execution for demo
+		select {
+		case <-time.After(3 * time.Second):
+			return fmt.Sprintf("Executed task (system) in %s: %s", agent.Config.Model, "Success"), nil
+		case <-ctx.Done():
+			return "", ctx.Err()
+		}
 	default:
 		return "", fmt.Errorf("unsupported provider: %s", agent.Config.Provider)
 	}

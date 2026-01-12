@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -190,7 +191,38 @@ var taskCreateCmd = &cobra.Command{
 		description := args[0]
 		priority, _ := cmd.Flags().GetString("priority")
 		
+		// Generate simple ID
+		taskID := fmt.Sprintf("task-%d", time.Now().Unix())
+		
+		// Create task YAML content
+		content := fmt.Sprintf(`id: %s
+name: %s
+description: %s
+metadata:
+  status: active
+  priority: %s
+  created_at: %s
+planning:
+  goals:
+    - Complete the task
+scope:
+  tech_stack:
+    language: Go
+`, taskID, description, description, priority, time.Now().Format(time.RFC3339))
+
+		// Ensure .tasks/active exists
+		taskDir := ".tasks/active"
+		if err := os.MkdirAll(taskDir, 0755); err != nil {
+			return fmt.Errorf("failed to create task directory: %w", err)
+		}
+		
+		filePath := filepath.Join(taskDir, fmt.Sprintf("%s.yaml", taskID))
+		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to write task file: %w", err)
+		}
+		
 		fmt.Printf("✅ Created task: %s\n", description)
+		fmt.Printf("   ID: %s\n", taskID)
 		fmt.Printf("   Priority: %s\n", priority)
 		fmt.Println("   Status: active")
 		
