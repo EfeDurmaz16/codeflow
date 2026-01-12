@@ -323,6 +323,11 @@ func (o *Orchestrator) ListAgents() []*agent.Agent {
 	return o.agentManager.ListAgents()
 }
 
+// GetAgent returns an agent by ID
+func (o *Orchestrator) GetAgent(agentID string) (*agent.Agent, bool) {
+	return o.agentManager.GetAgent(agentID)
+}
+
 // GetStats returns orchestrator statistics
 func (o *Orchestrator) GetStats() map[string]interface{} {
 	tasks := o.taskManager.ListTasks("")

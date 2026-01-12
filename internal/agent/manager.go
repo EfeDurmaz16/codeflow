@@ -31,6 +31,9 @@ type Agent struct {
 	TokensUsed    int
 	mu            sync.RWMutex
 
+	// Health tracking
+	Health *HealthStatus
+
 	// Internal clients
 	claudeClient *claude.Client
 }
@@ -63,6 +66,7 @@ func (m *Manager) RegisterAgent(config parser.AgentConfig, apiKey string) error 
 		Config:        config,
 		Status:        StatusDisconnected,
 		LastHeartbeat: time.Now(),
+		Health:        NewHealthStatus(config.Constraints.MaxTokens),
 	}
 
 	// Initialize provider-specific clients

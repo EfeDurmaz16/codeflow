@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/codeflow/orchestrator/internal/api"
 	"github.com/codeflow/orchestrator/internal/config"
 	"github.com/codeflow/orchestrator/internal/orchestrator"
 )
@@ -54,8 +55,13 @@ func main() {
 	}
 	fmt.Println("  ✓ Orchestrator started")
 
+	// Initialize WebSocket hub
+	wsHub := api.NewHub()
+	go wsHub.Run()
+	fmt.Println("  ✓ WebSocket hub started")
+
 	// Start HTTP API server
-	apiServer := startAPIServer(cfg.APIPort, orch)
+	apiServer := startAPIServer(cfg.APIPort, orch, wsHub)
 	fmt.Printf("  ✓ API server started on port %d\n", cfg.APIPort)
 
 	fmt.Println()
@@ -100,7 +106,7 @@ func main() {
 	fmt.Println("👋 CodeFlow Daemon stopped")
 }
 
-func startAPIServer(port int, orch *orchestrator.Orchestrator) *http.Server {
+func startAPIServer(port int, orch *orchestrator.Orchestrator, wsHub *api.Hub) *http.Server {
 	mux := http.NewServeMux()
 
 	// Health check
@@ -192,6 +198,30 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator) *http.Server {
 			
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"status":"registered"}`))
+		}
+	})
+
+	// WebSocket endpoint
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		wsHub.ServeWS(w, r)
+	})
+
+	// Agent Health endpoint
+	mux.HandleFunc("/agents/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			// Extract agent ID from path
+			path := r.URL.Path
+			if len(path) > 8 && path[len(path)-7:] == "/health" {
+				agentID := path[8 : len(path)-7]
+				agent, exists := orch.GetAgent(agentID)
+				if !exists {
+					http.Error(w, "Agent not found", http.StatusNotFound)
+					return
+				}
+				
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(agent.Health.GetSnapshot())
+			}
 		}
 	})
 
