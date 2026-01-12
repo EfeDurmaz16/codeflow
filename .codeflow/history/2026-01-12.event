@@ -1,0 +1,2 @@
+{"id":"1768243465320705000","type":"sync_started","timestamp":"2026-01-12T21:44:25.320709+03:00","data":{"conflict_resolution":"crdt","max_concurrent":5,"mode":"parallel"}}
+{"id":"1768243465921574000","type":"file_changed","timestamp":"2026-01-12T21:44:25.92149+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}

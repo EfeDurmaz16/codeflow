@@ -1,0 +1,77 @@
+version: '3.8'
+
+# CodeFlow Development Environment
+# Usage: docker compose up -d
+
+services:
+  # PostgreSQL for state persistence (Pro/Ultra tier)
+  postgres:
+    image: postgres:16-alpine
+    container_name: codeflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: codeflow
+      POSTGRES_USER: codeflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-codeflow_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for event queue and state cache
+  redis:
+    image: redis:7-alpine
+    container_name: codeflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Orchestrator daemon (development build)
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: codeflow-orchestrator
+    restart: unless-stopped
+    ports:
+      - "5555:5555"  # HTTP API
+      - "5556:5556"  # gRPC
+    volumes:
+      - ./:/app
+      - /app/bin  # Exclude bin directory
+    environment:
+      - CODEFLOW_LOG_LEVEL=debug
+      - CODEFLOW_DB_HOST=postgres
+      - CODEFLOW_REDIS_HOST=redis
+      - CODEFLOW_API_PORT=5555
+      - CODEFLOW_GRPC_PORT=5556
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - full
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  default:
+    name: codeflow-network

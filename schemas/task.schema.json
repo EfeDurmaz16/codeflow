@@ -1,0 +1,356 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://codeflow.dev/schemas/task.schema.json",
+    "title": "CodeFlow Task Definition",
+    "description": "Schema for .tasks/active/task-xxx.yaml",
+    "type": "object",
+    "required": [
+        "id",
+        "name",
+        "metadata"
+    ],
+    "properties": {
+        "id": {
+            "type": "string",
+            "pattern": "^task-\\d{3}$",
+            "description": "Unique task identifier"
+        },
+        "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+        },
+        "description": {
+            "type": "string"
+        },
+        "metadata": {
+            "type": "object",
+            "required": [
+                "created_at",
+                "status"
+            ],
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "critical"
+                    ],
+                    "default": "medium"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "blocked",
+                        "completed",
+                        "paused"
+                    ]
+                },
+                "assigned_agents": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "estimated_duration": {
+                    "type": "string",
+                    "description": "e.g., '4 hours'"
+                },
+                "actual_duration": {
+                    "type": "string"
+                }
+            }
+        },
+        "planning": {
+            "type": "object",
+            "properties": {
+                "goals": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "acceptance_criteria": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "constraints": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "dependencies": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "scope": {
+            "type": "object",
+            "properties": {
+                "files_to_create": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "files_to_modify": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "architecture": {
+                    "type": "object",
+                    "properties": {
+                        "pattern": {
+                            "type": "string"
+                        },
+                        "interfaces": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "tech_stack": {
+                    "type": "object",
+                    "properties": {
+                        "language": {
+                            "type": "string"
+                        },
+                        "framework": {
+                            "type": "string"
+                        },
+                        "database": {
+                            "type": "string"
+                        },
+                        "libraries": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "execution": {
+            "type": "object",
+            "properties": {
+                "agent_assignments": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "tasks": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "queued",
+                                    "in_progress",
+                                    "completed",
+                                    "failed"
+                                ]
+                            },
+                            "assigned_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                },
+                "subtasks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/subtask"
+                    }
+                }
+            }
+        },
+        "outputs": {
+            "type": "object",
+            "properties": {
+                "files_created": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "files_modified": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "branches": {
+                    "type": "object",
+                    "properties": {
+                        "working": {
+                            "type": "string"
+                        },
+                        "pr_number": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    }
+                },
+                "quality_metrics": {
+                    "type": "object",
+                    "properties": {
+                        "test_coverage": {
+                            "type": "number"
+                        },
+                        "lint_score": {
+                            "type": "number"
+                        },
+                        "security_score": {
+                            "type": "number"
+                        }
+                    }
+                }
+            }
+        },
+        "timeline": {
+            "type": "object",
+            "properties": {
+                "estimated_start": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "estimated_end": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "actual_start": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "format": "date-time"
+                },
+                "actual_end": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "format": "date-time"
+                },
+                "milestones": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "due": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "pending",
+                                    "in_progress",
+                                    "completed"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "rollback": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "git_checkpoint": {
+                    "type": "string"
+                },
+                "restore_on_failure": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "cost_tracking": {
+            "type": "object",
+            "properties": {
+                "estimated_tokens": {
+                    "type": "integer"
+                },
+                "actual_tokens": {
+                    "type": "integer"
+                },
+                "estimated_cost_usd": {
+                    "type": "number"
+                },
+                "actual_cost_usd": {
+                    "type": "number"
+                }
+            }
+        }
+    },
+    "definitions": {
+        "subtask": {
+            "type": "object",
+            "required": [
+                "id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "assigned_to": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "queued",
+                        "in_progress",
+                        "completed",
+                        "failed"
+                    ]
+                },
+                "progress": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

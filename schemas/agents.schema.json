@@ -1,0 +1,214 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://codeflow.dev/schemas/agents.schema.json",
+    "title": "CodeFlow Agent Configuration",
+    "description": "Schema for .codeflow/agents.yaml",
+    "type": "object",
+    "required": [
+        "agents"
+    ],
+    "properties": {
+        "agents": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/agent"
+            }
+        },
+        "sync_settings": {
+            "type": "object",
+            "properties": {
+                "conflict_resolution": {
+                    "type": "object",
+                    "properties": {
+                        "strategy": {
+                            "type": "string",
+                            "enum": [
+                                "crdt",
+                                "manual",
+                                "priority-based"
+                            ]
+                        },
+                        "merge_delay": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Seconds to wait before merging"
+                        },
+                        "manual_review_threshold": {
+                            "type": "string",
+                            "enum": [
+                                "always",
+                                "significant_change",
+                                "never"
+                            ]
+                        }
+                    }
+                },
+                "state_persistence": {
+                    "type": "object",
+                    "properties": {
+                        "backend": {
+                            "type": "string",
+                            "enum": [
+                                "sqlite",
+                                "postgres"
+                            ]
+                        },
+                        "location": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "agent": {
+            "type": "object",
+            "required": [
+                "id",
+                "type",
+                "enabled"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "description": "Unique agent identifier"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "api",
+                        "cli-wrapper",
+                        "ide-plugin"
+                    ],
+                    "description": "How the agent communicates"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "provider": {
+                    "type": "string",
+                    "enum": [
+                        "anthropic",
+                        "openai",
+                        "anysphere",
+                        "codeium",
+                        "custom"
+                    ]
+                },
+                "model": {
+                    "type": "string"
+                },
+                "capabilities": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "code_generation",
+                            "code_review",
+                            "documentation",
+                            "planning",
+                            "debugging",
+                            "testing",
+                            "refactoring",
+                            "real-time_collaboration"
+                        ]
+                    }
+                },
+                "constraints": {
+                    "type": "object",
+                    "properties": {
+                        "max_tokens": {
+                            "type": "integer",
+                            "minimum": 1000
+                        },
+                        "temperature": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 2
+                        },
+                        "tools": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "file_access": {
+                    "type": "object",
+                    "properties": {
+                        "read_paths": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "write_paths": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "excluded_paths": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "task_assignment": {
+                    "type": "object",
+                    "properties": {
+                        "specializations": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "skill_level": {
+                            "type": "string",
+                            "enum": [
+                                "junior",
+                                "senior",
+                                "expert"
+                            ]
+                        },
+                        "parallelizable_tasks": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                },
+                "sync": {
+                    "type": "object",
+                    "properties": {
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "real-time",
+                                "batch"
+                            ]
+                        },
+                        "batch_interval": {
+                            "type": "integer",
+                            "description": "Seconds between batches"
+                        }
+                    }
+                },
+                "context_strategy": {
+                    "type": "string",
+                    "enum": [
+                        "full",
+                        "windowed",
+                        "chunked",
+                        "summarized"
+                    ],
+                    "default": "windowed",
+                    "description": "How to manage context window"
+                }
+            }
+        }
+    }
+}

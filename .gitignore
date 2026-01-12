@@ -1,0 +1,55 @@
+# Binaries
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test coverage
+coverage.out
+coverage.html
+*.coverprofile
+
+# Dependency directories
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files (contain secrets!)
+.env
+.env.local
+.env.*.local
+
+# Local config overrides
+*.local.yaml
+*.local.yml
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+
+# Log files
+*.log
+logs/
+
+# Build artifacts
+dist/
+tmp/
+*.tmp
+
+# Air hot reload
+tmp/
+
+# Go workspace
+go.work
+go.work.sum
