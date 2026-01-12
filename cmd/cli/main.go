@@ -3,8 +3,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -145,6 +149,37 @@ func init() {
 	taskCmd.AddCommand(taskCreateCmd)
 	taskCmd.AddCommand(taskListCmd)
 	taskCmd.AddCommand(taskAssignCmd)
+	taskCmd.AddCommand(taskExecuteCmd)
+}
+
+var taskExecuteCmd = &cobra.Command{
+	Use:   "execute [task-id] [agent-id]",
+	Short: "Execute a task with an agent",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		taskID := args[0]
+		agentID := args[1]
+
+		payload := map[string]string{
+			"task_id":  taskID,
+			"agent_id": agentID,
+		}
+		jsonBody, _ := json.Marshal(payload)
+
+		resp, err := http.Post("http://localhost:5555/tasks/execute", "application/json", bytes.NewBuffer(jsonBody))
+		if err != nil {
+			return fmt.Errorf("failed to connect to daemon: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusAccepted {
+			return fmt.Errorf("daemon execution failed: %s", resp.Status)
+		}
+
+		fmt.Printf("🚀 Task %s queued for execution by %s\n", taskID, agentID)
+		fmt.Println("Check status with: codeflow status --watch")
+		return nil
+	},
 }
 
 var taskCreateCmd = &cobra.Command{
@@ -173,8 +208,35 @@ var taskListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		status, _ := cmd.Flags().GetString("status")
 		
+		resp, err := http.Get("http://localhost:5555/tasks")
+		if err != nil {
+			return fmt.Errorf("failed to connect to daemon: %w", err)
+		}
+		defer resp.Body.Close()
+
+		var result struct {
+			Tasks []struct {
+				ID     string `json:"id"`
+				Name   string `json:"name"`
+				Status string `json:"status"`
+			} `json:"tasks"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return fmt.Errorf("failed to decode response: %w", err)
+		}
+
 		fmt.Printf("📋 Tasks (%s)\n", status)
-		fmt.Println("No tasks found. Create one with: codeflow task create \"description\"")
+		if len(result.Tasks) == 0 {
+			fmt.Println("No tasks found.")
+			return nil
+		}
+
+		for _, t := range result.Tasks {
+			if status != "all" && status != "" && t.Status != status {
+				continue
+			}
+			fmt.Printf("- [%s] %s (%s)\n", t.ID, t.Name, t.Status)
+		}
 		
 		return nil
 	},
@@ -209,6 +271,8 @@ func init() {
 	agentCmd.AddCommand(agentAddCmd)
 	agentCmd.AddCommand(agentListCmd)
 	agentCmd.AddCommand(agentRemoveCmd)
+	agentCmd.AddCommand(agentCursorCmd)
+	agentCmd.AddCommand(agentWindsurfCmd)
 }
 
 var agentAddCmd = &cobra.Command{
@@ -227,6 +291,52 @@ var agentAddCmd = &cobra.Command{
 		
 		return nil
 	},
+}
+
+var agentCursorCmd = &cobra.Command{
+	Use:   "cursor",
+	Short: "Start Cursor IDE integration",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runExternalAgent("Cursor", "cursor-ide", "gpt-4")
+	},
+}
+
+var agentWindsurfCmd = &cobra.Command{
+	Use:   "windsurf",
+	Short: "Start Windsurf IDE integration",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runExternalAgent("Windsurf", "windsurf-ide", "cascade")
+	},
+}
+
+func runExternalAgent(name, provider, model string) error {
+	fmt.Printf("🔌 Connecting %s to CodeFlow Daemon...\n", name)
+
+	payload := map[string]string{
+		"name":     name,
+		"provider": provider,
+		"model":    model,
+	}
+	jsonBody, _ := json.Marshal(payload)
+
+	resp, err := http.Post("http://localhost:5555/agents/register", "application/json", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("failed to connect to daemon: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("registration failed: %s", resp.Status)
+	}
+
+	fmt.Printf("✅ %s connected! Waiting for tasks...\n", name)
+	
+	// Simulate event loop
+	for {
+		// In a real implementation, this would poll /tasks/assigned endpoint
+		// or listen to a websocket
+		time.Sleep(5 * time.Second)
+	}
 }
 
 func init() {

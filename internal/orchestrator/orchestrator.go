@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/codeflow/orchestrator/internal/agent"
@@ -171,10 +172,24 @@ func (o *Orchestrator) executeRequest(ctx context.Context, req *ExecutionRequest
 	var result string
 	var err error
 
-	if req.System != "" {
-		result, err = o.agentManager.ExecuteWithSystem(ctx, req.AgentID, req.System, req.Prompt)
+	prompt := req.Prompt
+	system := req.System
+
+	// Build prompt from task if not provided
+	if prompt == "" {
+		task, exists := o.taskManager.GetTask(req.TaskID)
+		if exists {
+			prompt = o.buildPrompt(&task.Config)
+			if system == "" {
+				system = o.buildSystemPrompt(&task.Config)
+			}
+		}
+	}
+
+	if system != "" {
+		result, err = o.agentManager.ExecuteWithSystem(ctx, req.AgentID, system, prompt)
 	} else {
-		result, err = o.agentManager.Execute(ctx, req.AgentID, req.Prompt)
+		result, err = o.agentManager.Execute(ctx, req.AgentID, prompt)
 	}
 
 	if err != nil {
@@ -282,6 +297,22 @@ func (o *Orchestrator) ListTasks(status task.Status) []*task.Task {
 	return o.taskManager.ListTasks(status)
 }
 
+// RegisterExternalAgent registers a new external agent (like IDEs)
+func (o *Orchestrator) RegisterExternalAgent(name, provider, model string) error {
+	cfg := parser.AgentConfig{
+		ID:       strings.ToLower(name),
+		Type:     "ide_agent",
+		Provider: provider,
+		Model:    model,
+		Enabled:  true,
+	}
+	// Default settings for external agents
+	cfg.TaskAssignment.ParallelizableTasks = 1
+	cfg.TaskAssignment.SkillLevel = "expert"
+	
+	return o.agentManager.RegisterAgent(cfg, "")
+}
+
 // RegisterAgent registers an agent
 func (o *Orchestrator) RegisterAgent(cfg parser.AgentConfig, apiKey string) error {
 	return o.agentManager.RegisterAgent(cfg, apiKey)
@@ -324,7 +355,45 @@ func (o *Orchestrator) GetStats() map[string]interface{} {
 	}
 }
 
-// SubscribeEvents returns a channel that receives events
-func (o *Orchestrator) SubscribeEvents() chan event.Event {
-	return o.eventLogger.Subscribe()
+// buildPrompt creates the prompt for the agent
+func (o *Orchestrator) buildPrompt(task *parser.TaskConfig) string {
+	var sb strings.Builder
+
+	sb.WriteString("# Task: ")
+	sb.WriteString(task.Name)
+	sb.WriteString("\n\n")
+
+	if task.Description != "" {
+		sb.WriteString("## Description\n")
+		sb.WriteString(task.Description)
+		sb.WriteString("\n\n")
+	}
+
+	if len(task.Planning.Goals) > 0 {
+		sb.WriteString("## Goals\n")
+		for _, goal := range task.Planning.Goals {
+			sb.WriteString("- ")
+			sb.WriteString(goal)
+			sb.WriteString("\n")
+		}
+		sb.WriteString("\n")
+	}
+
+	if len(task.Scope.FilesToCreate) > 0 {
+		sb.WriteString("## Files to Create\n")
+		for _, f := range task.Scope.FilesToCreate {
+			sb.WriteString("- ")
+			sb.WriteString(f)
+			sb.WriteString("\n")
+		}
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("Please provide the implementation.\n")
+	return sb.String()
+}
+
+// buildSystemPrompt creates the system prompt
+func (o *Orchestrator) buildSystemPrompt(task *parser.TaskConfig) string {
+	return "You are an expert software engineer. Provide complete, working code with necessary imports."
 }

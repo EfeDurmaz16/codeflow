@@ -1,5 +1,11 @@
 # Binaries
+# Binaries
 bin/
+cli
+mcp
+codeflow
+codeflow-daemon
+*.exe
 *.exe
 *.dll
 *.so
@@ -41,6 +47,7 @@ Thumbs.db
 # Log files
 *.log
 logs/
+.codeflow/
 
 # Build artifacts
 dist/

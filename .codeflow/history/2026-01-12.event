@@ -1,2 +1,16 @@
 {"id":"1768243465320705000","type":"sync_started","timestamp":"2026-01-12T21:44:25.320709+03:00","data":{"conflict_resolution":"crdt","max_concurrent":5,"mode":"parallel"}}
 {"id":"1768243465921574000","type":"file_changed","timestamp":"2026-01-12T21:44:25.92149+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}
+{"id":"1768245460438337000","type":"sync_started","timestamp":"2026-01-12T22:17:40.43834+03:00","data":{"conflict_resolution":"crdt","max_concurrent":5,"mode":"parallel"}}
+{"id":"1768245461065858000","type":"file_changed","timestamp":"2026-01-12T22:17:41.06+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}
+{"id":"1768245461639416000","type":"file_changed","timestamp":"2026-01-12T22:17:41.639405+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}
+{"id":"1768245462239415000","type":"file_changed","timestamp":"2026-01-12T22:17:42.239399+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}
+{"id":"1768245462460482000","type":"agent_connected","timestamp":"2026-01-12T22:17:42.460485+03:00","agent_id":"cursor","data":{"model":"gpt-4","provider":"cursor-ide"}}
+{"id":"1768245463039512000","type":"file_changed","timestamp":"2026-01-12T22:17:43.039411+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}
+{"id":"1768245463639412000","type":"file_changed","timestamp":"2026-01-12T22:17:43.639404+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}
+{"id":"1768245642030565000","type":"sync_started","timestamp":"2026-01-12T22:20:42.030567+03:00","data":{"conflict_resolution":"crdt","max_concurrent":5,"mode":"parallel"}}
+{"id":"1768245642631832000","type":"file_changed","timestamp":"2026-01-12T22:20:42.631657+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}
+{"id":"1768245643230888000","type":"file_changed","timestamp":"2026-01-12T22:20:43.230742+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}
+{"id":"1768245643831289000","type":"file_changed","timestamp":"2026-01-12T22:20:43.831222+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}
+{"id":"1768245643878910000","type":"agent_connected","timestamp":"2026-01-12T22:20:43.878914+03:00","agent_id":"cursor","data":{"model":"gpt-4","provider":"cursor-ide"}}
+{"id":"1768245644430777000","type":"file_changed","timestamp":"2026-01-12T22:20:44.430699+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}
+{"id":"1768245644931667000","type":"file_changed","timestamp":"2026-01-12T22:20:44.931659+03:00","data":{"path":"/Users/efebarandurmaz/Desktop/extension/codeflow/.codeflow/history/2026-01-12.event"}}

@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -133,6 +134,27 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator) *http.Server {
 		}
 	})
 
+	// Task Execution endpoint
+	mux.HandleFunc("/tasks/execute", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			var req struct {
+				TaskID  string `json:"task_id"`
+				AgentID string `json:"agent_id"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			
+			// Queue task for execution (orchestrator will auto-generate prompt)
+			orch.QueueExecution(req.TaskID, req.AgentID, "", "")
+			
+			w.WriteHeader(http.StatusAccepted)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"status":"queued","message":"Task queued for execution"}`))
+		}
+	})
+
 	// Agents endpoint
 	mux.HandleFunc("/agents", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
@@ -147,6 +169,29 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator) *http.Server {
 					a.Config.ID, a.GetStatus(), a.Config.Provider)
 			}
 			w.Write([]byte("]}"))
+		}
+	})
+
+	// Agent Registration endpoint
+	mux.HandleFunc("/agents/register", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			var req struct {
+				Name     string `json:"name"`
+				Provider string `json:"provider"`
+				Model    string `json:"model"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			if err := orch.RegisterExternalAgent(req.Name, req.Provider, req.Model); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"registered"}`))
 		}
 	})
 
