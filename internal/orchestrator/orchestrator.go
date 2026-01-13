@@ -298,7 +298,7 @@ func (o *Orchestrator) autoAssignTask(taskID string) {
 
 // findBestAgentForTask finds the best agent for a task based on capabilities
 func (o *Orchestrator) findBestAgentForTask(t *task.Task) (string, string) {
-	agents := o.agentManager.GetAgents()
+	agents := o.agentManager.ListAgents()
 	
 	bestScore := -100
 	bestAgentID := ""
@@ -330,7 +330,7 @@ func (o *Orchestrator) QueueExecution(taskID, agentID, prompt, system string) {
 	if agentID == "" {
 		// Try to find best agent if not specified
 		if t, exists := o.taskManager.GetTask(taskID); exists {
-			agentID, _ = o.findBestAgentForTask(&t)
+			agentID, _ = o.findBestAgentForTask(t)
 		}
 	}
 

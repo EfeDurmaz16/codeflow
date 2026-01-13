@@ -4,6 +4,7 @@ interface Task {
     id: string
     name: string
     status: string
+    assignment_reason?: string
 }
 
 export default function TaskQueue() {
@@ -48,10 +49,16 @@ export default function TaskQueue() {
                                     {task.status}
                                 </span>
                             </div>
+                            {task.assignment_reason && (
+                                <div className="mt-2 text-xs text-gray-400 border-t border-gray-600 pt-2 flex items-center gap-1">
+                                    <span className="text-blue-400">🤖 Routing:</span>
+                                    {task.assignment_reason}
+                                </div>
+                            )}
                         </div>
                     ))
                 )}
             </div>
-        </div>
+        </div >
     )
 }

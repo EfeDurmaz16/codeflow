@@ -69,13 +69,40 @@ func NewManager(logger *event.Logger) *Manager {
 	}
 }
 
-// RegisterAgent registers a new agent from config
+// RegisterAgent registers a new agent or updates an existing one
 func (m *Manager) RegisterAgent(config parser.AgentConfig, apiKey string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if _, exists := m.agents[config.ID]; exists {
-		return fmt.Errorf("%w: %s", ErrAgentAlreadyRegistered, config.ID)
+	// If agent exists, update it
+	if existing, exists := m.agents[config.ID]; exists {
+		existing.mu.Lock()
+		existing.Config = config
+		existing.Status = StatusConnected // Mark as connected on re-registration
+		existing.LastHeartbeat = time.Now()
+		
+		// Update client if needed (e.g. Anthropic config changed)
+		if config.Provider == "anthropic" {
+			// simplified: just recreate client
+			opts := []claude.ClientOption{}
+			if config.Model != "" {
+				opts = append(opts, claude.WithModel(config.Model))
+			}
+			if config.Constraints.MaxTokens > 0 {
+				opts = append(opts, claude.WithMaxTokens(config.Constraints.MaxTokens))
+			}
+			existing.claudeClient = claude.NewClient(apiKey, opts...)
+		}
+		existing.mu.Unlock()
+		
+		m.logger.Log(event.Event{
+			Type:    event.AgentConnected, // Reconnected
+			AgentID: config.ID,
+			Data: map[string]interface{}{
+				"status": "reconnected",
+			},
+		})
+		return nil
 	}
 
 	agent := &Agent{
@@ -97,7 +124,7 @@ func (m *Manager) RegisterAgent(config parser.AgentConfig, apiKey string) error 
 		}
 		agent.claudeClient = claude.NewClient(apiKey, opts...)
 		agent.Status = StatusConnected
-	case "ide_agent":
+	case "ide_agent", "cursor-ide", "windsurf-ide":
 		// IDE agents are external and always considered connected upon registration
 		agent.Status = StatusConnected
 	default:

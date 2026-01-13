@@ -6,7 +6,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/codeflow/orchestrator/internal/agent"
 	"github.com/codeflow/orchestrator/internal/api"
 	"github.com/codeflow/orchestrator/internal/config"
 	"github.com/codeflow/orchestrator/internal/orchestrator"
@@ -135,8 +133,8 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator, wsHub *api.Hub) *
 				if i > 0 {
 					w.Write([]byte(","))
 				}
-				fmt.Fprintf(w, `{"id":"%s","name":"%s","status":"%s"}`,
-					t.Config.ID, t.Config.Name, t.Status)
+				fmt.Fprintf(w, `{"id":"%s","name":"%s","status":"%s","assignment_reason":"%s"}`,
+					t.Config.ID, t.Config.Name, t.Status, t.Config.Metadata.AssignmentReason)
 			}
 			w.Write([]byte("]}"))
 		}
@@ -194,12 +192,6 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator, wsHub *api.Hub) *
 			}
 
 			if err := orch.RegisterExternalAgent(req.Name, req.Provider, req.Model); err != nil {
-				if errors.Is(err, agent.ErrAgentAlreadyRegistered) {
-					// 409 Conflict - Agent already exists (not an error from CLI perspective)
-					w.WriteHeader(http.StatusConflict) 
-					w.Write([]byte(`{"status":"already_registered"}`))
-					return
-				}
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -235,7 +227,7 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator, wsHub *api.Hub) *
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
-		Handler: mux,
+		Handler: enableCORS(mux),
 	}
 
 	go func() {
@@ -246,6 +238,22 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator, wsHub *api.Hub) *
 
 	return server
 }
+
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 
 func printBanner() {
 	banner := `
