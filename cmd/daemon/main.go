@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -137,6 +138,44 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator, wsHub *api.Hub) *
 					t.Config.ID, t.Config.Name, t.Status, t.Config.Metadata.AssignmentReason)
 			}
 			w.Write([]byte("]}"))
+		}
+	})
+
+	// Single Task operations (status update)
+	// We handle /tasks/{id} here. 
+	// Note: In ServeMux, "/tasks/" matches everything starting with it if we register it.
+	// But we registered "/tasks" (no slash).
+	// We need to register "/tasks/" to capture ID.
+	mux.HandleFunc("/tasks/", func(w http.ResponseWriter, r *http.Request) {
+		// Extract ID
+		id := strings.TrimPrefix(r.URL.Path, "/tasks/")
+		if id == "" || id == "execute" { // Avoid conflict with /tasks/execute if registered separately (it is)
+			// pass to next handler? No, mux handles longest match.
+			// actually /tasks/execute is registered separately, so it will match that more specifically.
+			// But "execute" might come here if we are not careful?
+			// "/tasks/execute" is longer than "/tasks/", so it should be fine.
+			// Wait, ID shouldn't contain slashes usually.
+			http.NotFound(w, r)
+			return
+		}
+
+		if r.Method == "PATCH" {
+			var req struct {
+				Status  string `json:"status"`
+				Summary string `json:"summary"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			if err := orch.UpdateTaskStatus(id, req.Status, req.Summary); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"updated"}`))
 		}
 	})
 

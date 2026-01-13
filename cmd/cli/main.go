@@ -14,6 +14,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
+	"github.com/codeflow/orchestrator/internal/mcp"
 	"github.com/codeflow/orchestrator/ui/tui"
 )
 
@@ -57,6 +58,7 @@ func init() {
 	rootCmd.AddCommand(taskCmd)
 	rootCmd.AddCommand(agentCmd)
 	rootCmd.AddCommand(walkCmd)
+	rootCmd.AddCommand(mcpCmd)
 }
 
 // initCmd initializes a new CodeFlow project
@@ -410,6 +412,8 @@ func init() {
 	walkCmd.AddCommand(walkRunCmd)
 }
 
+
+
 var walkListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all walkthroughs",
@@ -430,3 +434,25 @@ var walkRunCmd = &cobra.Command{
 		return nil
 	},
 }
+
+// mcpCmd starts the MCP server
+var mcpCmd = &cobra.Command{
+	Use:   "mcp",
+	Short: "Start the MCP server",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Get project root (default to current directory)
+		wd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get working directory: %w", err)
+		}
+
+		server, err := mcp.NewServer(wd)
+		if err != nil {
+			return fmt.Errorf("failed to create MCP server: %w", err)
+		}
+
+		// Start server (blocks)
+		return server.Start()
+	},
+}
+

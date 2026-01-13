@@ -164,7 +164,7 @@ func (o *Orchestrator) executionWorker(ctx context.Context, id int) {
 // executeRequest executes a single request
 func (o *Orchestrator) executeRequest(ctx context.Context, req *ExecutionRequest) {
 	// Update task status
-	if err := o.taskManager.UpdateTaskStatus(req.TaskID, task.StatusRunning); err != nil {
+	if err := o.taskManager.UpdateTaskStatus(req.TaskID, task.StatusRunning, ""); err != nil {
 		fmt.Printf("Warning: failed to update task status: %v\n", err)
 	}
 
@@ -199,7 +199,7 @@ func (o *Orchestrator) executeRequest(ctx context.Context, req *ExecutionRequest
 	}
 
 	if err != nil {
-		o.taskManager.UpdateTaskStatus(req.TaskID, task.StatusFailed)
+		o.taskManager.UpdateTaskStatus(req.TaskID, task.StatusFailed, err.Error())
 		o.eventLogger.Log(event.Event{
 			Type:    event.TaskFailed,
 			TaskID:  req.TaskID,
@@ -209,7 +209,8 @@ func (o *Orchestrator) executeRequest(ctx context.Context, req *ExecutionRequest
 			},
 		})
 	} else {
-		o.taskManager.UpdateTaskStatus(req.TaskID, task.StatusCompleted)
+		summary := fmt.Sprintf("Completed by agent. Result length: %d chars", len(result))
+		o.taskManager.UpdateTaskStatus(req.TaskID, task.StatusCompleted, summary)
 		o.eventLogger.Log(event.Event{
 			Type:    event.TaskCompleted,
 			TaskID:  req.TaskID,
@@ -223,6 +224,11 @@ func (o *Orchestrator) executeRequest(ctx context.Context, req *ExecutionRequest
 	if req.Callback != nil {
 		req.Callback(result, err)
 	}
+}
+
+// UpdateTaskStatus updates a task status
+func (o *Orchestrator) UpdateTaskStatus(taskID, status, summary string) error {
+	return o.taskManager.UpdateTaskStatus(taskID, task.Status(status), summary)
 }
 
 // handleEvents processes incoming events

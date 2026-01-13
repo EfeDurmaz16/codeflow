@@ -99,6 +99,10 @@
                 },
                 "actual_duration": {
                     "type": "string"
+                },
+                "completion_summary": {
+                    "type": "string",
+                    "description": "Summary of work done upon completion"
                 }
             }
         },

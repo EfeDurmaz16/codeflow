@@ -221,6 +221,7 @@ type TaskConfig struct {
 		AssignmentReason string    `yaml:"assignment_reason"`
 		EstimatedDuration string   `yaml:"estimated_duration"`
 		ActualDuration   string    `yaml:"actual_duration"`
+		CompletionSummary string   `yaml:"completion_summary"`
 	} `yaml:"metadata"`
 
 	Planning struct {

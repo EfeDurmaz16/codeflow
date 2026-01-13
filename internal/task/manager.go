@@ -186,8 +186,8 @@ func (m *Manager) CreateTask(name, description, priority string) (*Task, error) 
 	return task, nil
 }
 
-// UpdateTaskStatus updates a task's status
-func (m *Manager) UpdateTaskStatus(id string, status Status) error {
+// UpdateTaskStatus updates a task's status and optional summary
+func (m *Manager) UpdateTaskStatus(id string, status Status, summary string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -199,6 +199,9 @@ func (m *Manager) UpdateTaskStatus(id string, status Status) error {
 	oldStatus := task.Status
 	task.Status = status
 	task.Config.Metadata.Status = string(status)
+	if summary != "" {
+		task.Config.Metadata.CompletionSummary = summary
+	}
 
 	now := time.Now()
 	switch status {
@@ -244,6 +247,7 @@ func (m *Manager) UpdateTaskStatus(id string, status Status) error {
 		Data: map[string]interface{}{
 			"old_status": oldStatus,
 			"new_status": status,
+			"summary":    summary,
 		},
 	})
 
