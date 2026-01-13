@@ -61,6 +61,53 @@ func main() {
 	go wsHub.Run()
 	fmt.Println("  ✓ WebSocket hub started")
 
+	// Bridge Orchestrator events to WebSocket
+	// This enables the "Live Feed" in the Dashboard
+	go func() {
+		eventChan := orch.Subscribe()
+		for evt := range eventChan {
+			// Convert event.Event to api.WSMessage
+			// We intentionally map all events to a generic or specific type
+			wsType := "log_entry"
+			switch evt.Type {
+			case "task_created", "task_updated", "task_completed":
+				wsType = "task_update"
+			case "agent_connected", "agent_disconnected":
+				wsType = "agent_update"
+			}
+			
+			// For log_entry, we want a friendly message
+			data := evt.Data
+			if wsType == "log_entry" {
+				// Ensure message exists or create one from type
+				if _, ok := data["message"]; !ok {
+					// Create data copy to avoid mutation race (though data should be new per event)
+					newData := make(map[string]interface{})
+					for k, v := range data { newData[k] = v }
+					newData["message"] = fmt.Sprintf("Event: %s", evt.Type)
+					newData["level"] = "info"
+					if strings.Contains(string(evt.Type), "error") || strings.Contains(string(evt.Type), "failed") {
+						newData["level"] = "error"
+					}
+					data = newData
+				}
+			}
+
+			wsHub.Broadcast(wsType, func() interface{} {
+					// Enrich data with high-level fields if needed, or just pass map
+					// Let's flatten structure for frontend ActivityLog
+					flattened := make(map[string]interface{})
+					for k, v := range data { flattened[k] = v }
+					flattened["id"] = evt.ID
+					flattened["timestamp"] = evt.Timestamp
+					flattened["type"] = evt.Type
+					flattened["task_id"] = evt.TaskID
+					flattened["agent_id"] = evt.AgentID
+					return flattened
+				}())
+		}
+	}()
+
 	// Start HTTP API server
 	apiServer := startAPIServer(cfg.APIPort, orch, wsHub)
 	fmt.Printf("  ✓ API server started on port %d\n", cfg.APIPort)
@@ -134,8 +181,23 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator, wsHub *api.Hub) *
 				if i > 0 {
 					w.Write([]byte(","))
 				}
-				fmt.Fprintf(w, `{"id":"%s","name":"%s","status":"%s","assignment_reason":"%s"}`,
-					t.Config.ID, t.Config.Name, t.Status, t.Config.Metadata.AssignmentReason)
+				// Use json.Marshal to avoid manual string escaping issues (especially for summary)
+				type TaskResponse struct {
+					ID                string `json:"id"`
+					Name              string `json:"name"`
+					Status            string `json:"status"`
+					AssignmentReason  string `json:"assignment_reason"`
+					CompletionSummary string `json:"completion_summary"`
+				}
+				resp := TaskResponse{
+					ID:                t.Config.ID,
+					Name:              t.Config.Name,
+					Status:            string(t.Status),
+					AssignmentReason:  t.Config.Metadata.AssignmentReason,
+					CompletionSummary: t.Config.Metadata.CompletionSummary,
+				}
+				jsonBytes, _ := json.Marshal(resp)
+				w.Write(jsonBytes)
 			}
 			w.Write([]byte("]}"))
 		}

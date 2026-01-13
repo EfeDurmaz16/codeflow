@@ -127,6 +127,11 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 	return nil
 }
 
+// Subscribe returns a channel that receives all system events
+func (o *Orchestrator) Subscribe() chan event.Event {
+	return o.eventLogger.Subscribe()
+}
+
 // Stop stops the orchestrator
 func (o *Orchestrator) Stop(ctx context.Context) error {
 	o.mu.Lock()

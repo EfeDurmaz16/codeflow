@@ -5,6 +5,7 @@ interface Task {
     name: string
     status: string
     assignment_reason?: string
+    completion_summary?: string
 }
 
 export default function TaskQueue() {
@@ -53,6 +54,16 @@ export default function TaskQueue() {
                                 <div className="mt-2 text-xs text-gray-400 border-t border-gray-600 pt-2 flex items-center gap-1">
                                     <span className="text-blue-400">🤖 Routing:</span>
                                     {task.assignment_reason}
+                                </div>
+                            )}
+                            {task.status === 'completed' && task.completion_summary && (
+                                <div className="mt-2 text-xs text-gray-300 bg-gray-800 rounded p-2 border border-green-900/30">
+                                    <div className="flex items-center gap-1 mb-1 text-green-400 font-semibold">
+                                        <span>✓ Completion Summary:</span>
+                                    </div>
+                                    <p className="whitespace-pre-wrap font-mono text-[10px] opacity-80 leading-relaxed">
+                                        {task.completion_summary}
+                                    </p>
                                 </div>
                             )}
                         </div>
