@@ -297,6 +297,8 @@ func (o *Orchestrator) ListTasks(status task.Status) []*task.Task {
 	return o.taskManager.ListTasks(status)
 }
 
+
+
 // RegisterExternalAgent registers a new external agent (like IDEs)
 func (o *Orchestrator) RegisterExternalAgent(name, provider, model string) error {
 	cfg := parser.AgentConfig{

@@ -28,7 +28,6 @@ type Agent struct {
 	Status        Status
 	LastHeartbeat time.Time
 	CurrentTask   string
-	TokensUsed    int
 	mu            sync.RWMutex
 
 	// Health tracking
@@ -43,6 +42,20 @@ type Manager struct {
 	agents map[string]*Agent
 	logger *event.Logger
 	mu     sync.RWMutex
+}
+
+// GetTotalTokensUsed returns the total tokens used by all agents
+func (m *Manager) GetTotalTokensUsed() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	total := 0
+	for _, agent := range m.agents {
+		if agent.Health != nil && agent.Health.Tokens != nil {
+			total += agent.Health.Tokens.UsedTokens
+		}
+	}
+	return total
 }
 
 // NewManager creates a new agent manager
@@ -208,12 +221,26 @@ func (m *Manager) Execute(ctx context.Context, agentID string, prompt string) (s
 		agent.mu.Unlock()
 		return "", fmt.Errorf("agent %s is not connected", agentID)
 	}
+	
+	// Check Limits
+	if agent.Health.IsBudgetExceeded() {
+		agent.mu.Unlock()
+		return "", fmt.Errorf("agent %s token budget exceeded", agentID)
+	}
+	if !agent.Health.RateLimit.Allow() {
+		agent.mu.Unlock()
+		return "", fmt.Errorf("agent %s rate limit exceeded (wait %s)", agentID, agent.Health.RateLimit.TimeUntilReset())
+	}
+
 	agent.Status = StatusBusy
+	// Record activity
+	agent.Health.SetCurrentTask("executing")
 	agent.mu.Unlock()
 
 	defer func() {
 		agent.mu.Lock()
 		agent.Status = StatusConnected
+		agent.Health.ClearCurrentTask()
 		agent.mu.Unlock()
 	}()
 
@@ -223,14 +250,28 @@ func (m *Manager) Execute(ctx context.Context, agentID string, prompt string) (s
 		if agent.claudeClient == nil {
 			return "", fmt.Errorf("claude client not initialized")
 		}
-		return agent.claudeClient.Chat(ctx, prompt)
+		start := time.Now()
+		resp, err := agent.claudeClient.Chat(ctx, prompt)
+		latency := time.Since(start).Milliseconds()
+		
+		// Approximate tokens (1 char ~ 0.25 tokens for simple estimation)
+		tokens := len(prompt) / 4
+		if err == nil {
+			tokens += len(resp) / 4
+		}
+		
+		agent.Health.RecordRequest(tokens, latency, err == nil)
+		return resp, err
 	case "ide_agent":
 		// For IDE agents, we simulate execution or wait for external callback
 		// For this demo, we'll simulate a delay and success
 		select {
 		case <-time.After(3 * time.Second):
+			// Record mock health data
+			agent.Health.RecordRequest(100, 3000, true)
 			return fmt.Sprintf("Executed task in %s: %s", agent.Config.Model, "Success"), nil
 		case <-ctx.Done():
+			agent.Health.RecordRequest(0, 0, false)
 			return "", ctx.Err()
 		}
 	default:

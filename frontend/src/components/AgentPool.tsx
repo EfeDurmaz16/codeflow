@@ -4,6 +4,19 @@ interface Agent {
     id: string
     status: string
     provider: string
+    health?: {
+        status: string
+        tokens: {
+            total_budget: number;
+            used_tokens: number;
+            reset_at: string
+        }
+        rate_limit: {
+            requests_per_minute: number
+        }
+        last_activity: string
+        current_task: string
+    }
 }
 
 export default function AgentPool() {
@@ -50,10 +63,24 @@ export default function AgentPool() {
                                     {getStatusIcon(agent.status)}
                                 </span>
                             </div>
-                            <p className="text-gray-400 text-sm">{agent.provider}</p>
-                            <div className="mt-3 h-1 bg-gray-600 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary w-0"></div>
+                            <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
+                                <span>{agent.provider}</span>
+                                {agent.health?.tokens && (
+                                    <span>{agent.health.tokens.used_tokens} / {agent.health.tokens.total_budget} tokens</span>
+                                )}
                             </div>
+
+                            {agent.health?.tokens && (
+                                <div className="mt-3 relative pt-1">
+                                    <div className="overflow-hidden h-2 mb-1 text-xs flex rounded bg-gray-700 border border-gray-600">
+                                        <div
+                                            style={{ width: `${Math.min(100, (agent.health.tokens.used_tokens / agent.health.tokens.total_budget) * 100)}%` }}
+                                            className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center transition-all duration-500 ${(agent.health.tokens.used_tokens / agent.health.tokens.total_budget) > 0.9 ? 'bg-red-500' : 'bg-blue-500'
+                                                }`}
+                                        ></div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))
                 )}
