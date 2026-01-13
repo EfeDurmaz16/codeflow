@@ -4,6 +4,7 @@ import TaskQueue from './components/TaskQueue'
 import AgentPool from './components/AgentPool'
 import ActivityLog from './components/ActivityLog'
 import StatsCard from './components/StatsCard'
+import Timeline from './components/Timeline'
 
 interface DashboardStats {
     active_tasks: number
@@ -86,6 +87,7 @@ function App() {
                     </div>
                     <div>
                         <AgentPool />
+                        <Timeline />
                     </div>
                 </div>
             </div>

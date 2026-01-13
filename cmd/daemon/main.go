@@ -203,6 +203,21 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator, wsHub *api.Hub) *
 		}
 	})
 
+	// Timeline endpoint
+	mux.HandleFunc("/timeline", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			entries, err := orch.GetTimeline()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"entries": entries,
+			})
+		}
+	})
+
 	// Single Task operations (status update)
 	// We handle /tasks/{id} here. 
 	// Note: In ServeMux, "/tasks/" matches everything starting with it if we register it.

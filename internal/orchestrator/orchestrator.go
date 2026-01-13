@@ -14,6 +14,7 @@ import (
 	"github.com/codeflow/orchestrator/internal/parser"
 	"github.com/codeflow/orchestrator/internal/routing"
 	"github.com/codeflow/orchestrator/internal/task"
+	"github.com/codeflow/orchestrator/internal/timeline"
 	"github.com/codeflow/orchestrator/internal/watcher"
 )
 
@@ -26,6 +27,7 @@ type Orchestrator struct {
 	taskManager  *task.Manager
 	agentManager *agent.Manager
 	matcher      *routing.Matcher
+	timeline     *timeline.Manager
 
 	// Execution state
 	executionQueue chan *ExecutionRequest
@@ -69,6 +71,9 @@ func New(cfg *config.Config) (*Orchestrator, error) {
 	// Initialize matcher
 	matcher := routing.NewMatcher()
 
+	// Initialize timeline manager
+	timelineManager := timeline.NewManager(cfg.ProjectRoot)
+
 	return &Orchestrator{
 		config:         cfg,
 		parser:         p,
@@ -77,6 +82,7 @@ func New(cfg *config.Config) (*Orchestrator, error) {
 		taskManager:    taskManager,
 		agentManager:   agentManager,
 		matcher:        matcher,
+		timeline:       timelineManager,
 		executionQueue: make(chan *ExecutionRequest, 100),
 	}, nil
 }
@@ -233,7 +239,43 @@ func (o *Orchestrator) executeRequest(ctx context.Context, req *ExecutionRequest
 
 // UpdateTaskStatus updates a task status
 func (o *Orchestrator) UpdateTaskStatus(taskID, status, summary string) error {
-	return o.taskManager.UpdateTaskStatus(taskID, task.Status(status), summary)
+	err := o.taskManager.UpdateTaskStatus(taskID, task.Status(status), summary)
+	if err != nil {
+		return err
+	}
+
+	// Record to timeline if completed
+	if status == string(task.StatusCompleted) {
+		// Get task details (we assume existence since Update succeeded)
+		// We might need to fetch it to get the name
+		// For now, let's use ID and Summary
+		
+		// Ideally we fetch the task to get the Name. 
+		// Since taskManager doesn't expose GetTask easily by ID without iterating or locking...
+		// Let's assume we can add a method or just use ID.
+		// Actually taskManager.UpdateTaskStatus updates in place but doesn't return the task.
+		
+		entry := timeline.Entry{
+			Type:    "task_completed",
+			Title:   fmt.Sprintf("Task Completed: %s", taskID), // Placeholder for real name if not available
+			Summary: summary,
+			// AgentID? We don't have it here easily unless passed. 
+			// We can leave it empty or update API to pass it.
+		}
+		
+		// Enriched title attempt:
+		// We can try to list tasks to find it? No, inefficient.
+		// Let's stick to ID for now or check if we can get it.
+
+		o.timeline.AddEntry(entry)
+	}
+	
+	return nil
+}
+
+// GetTimeline returns the project timeline
+func (o *Orchestrator) GetTimeline() ([]timeline.Entry, error) {
+	return o.timeline.GetEntries()
 }
 
 // handleEvents processes incoming events
