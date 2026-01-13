@@ -24,6 +24,7 @@ const (
 	StatusBlocked   Status = "blocked"
 	StatusFailed    Status = "failed"
 	StatusPaused    Status = "paused"
+	StatusReview    Status = "review"
 )
 
 // Task represents a managed task

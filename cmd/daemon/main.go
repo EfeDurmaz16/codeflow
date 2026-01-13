@@ -218,6 +218,40 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator, wsHub *api.Hub) *
 		}
 	})
 
+	// Review actions (Approve/Reject)
+	mux.HandleFunc("/tasks/review/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		// Expected: /tasks/review/{id}/{action}
+		parts := strings.Split(strings.Trim(path, "/"), "/")
+		if len(parts) != 4 {
+			http.NotFound(w, r)
+			return
+		}
+		id := parts[2]
+		action := parts[3] // approve or reject
+
+		if r.Method == "POST" {
+			var err error
+			if action == "approve" {
+				// Move to completed
+				err = orch.UpdateTaskStatus(id, "completed", "")
+			} else if action == "reject" {
+				// Move back to active
+				err = orch.UpdateTaskStatus(id, "active", "")
+			} else {
+				http.Error(w, "Invalid action", http.StatusBadRequest)
+				return
+			}
+
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(fmt.Sprintf(`{"status":"%s"}`, action)))
+		}
+	})
+
 	// Single Task operations (status update)
 	// We handle /tasks/{id} here. 
 	// Note: In ServeMux, "/tasks/" matches everything starting with it if we register it.
