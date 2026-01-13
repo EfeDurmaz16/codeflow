@@ -100,19 +100,29 @@
                     "type": "string"
                 },
                 "capabilities": {
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                        "enum": [
-                            "code_generation",
-                            "code_review",
-                            "documentation",
-                            "planning",
-                            "debugging",
-                            "testing",
-                            "refactoring",
-                            "real-time_collaboration"
-                        ]
+                    "type": "object",
+                    "properties": {
+                        "languages": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "frameworks": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "tools": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "role": {
+                            "type": "string"
+                        }
                     }
                 },
                 "constraints": {

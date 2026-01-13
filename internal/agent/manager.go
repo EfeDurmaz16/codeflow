@@ -22,6 +22,9 @@ const (
 	StatusError        Status = "error"
 )
 
+// ErrAgentAlreadyRegistered is returned when trying to register an existing agent
+var ErrAgentAlreadyRegistered = fmt.Errorf("agent already registered")
+
 // Agent represents a managed AI agent
 type Agent struct {
 	Config        parser.AgentConfig
@@ -72,7 +75,7 @@ func (m *Manager) RegisterAgent(config parser.AgentConfig, apiKey string) error 
 	defer m.mu.Unlock()
 
 	if _, exists := m.agents[config.ID]; exists {
-		return fmt.Errorf("agent %s already registered", config.ID)
+		return fmt.Errorf("%w: %s", ErrAgentAlreadyRegistered, config.ID)
 	}
 
 	agent := &Agent{

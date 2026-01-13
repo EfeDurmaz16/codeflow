@@ -155,7 +155,12 @@ type AgentConfig struct {
 	Provider string   `yaml:"provider"`
 	Model    string   `yaml:"model"`
 
-	Capabilities []string `yaml:"capabilities"`
+	Capabilities struct {
+		Languages  []string `yaml:"languages"`
+		Frameworks []string `yaml:"frameworks"`
+		Tools      []string `yaml:"tools"`
+		Role       string   `yaml:"role"` // e.g. "architect", "implementer", "reviewer"
+	} `yaml:"capabilities"`
 
 	Constraints struct {
 		MaxTokens   int      `yaml:"max_tokens"`
@@ -201,11 +206,19 @@ type TaskConfig struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 
+	Requirements struct {
+		Languages  []string `yaml:"languages"`
+		Frameworks []string `yaml:"frameworks"`
+		Tools      []string `yaml:"tools"`
+		SkillLevel string   `yaml:"skill_level"` // e.g. "junior", "senior", "expert"
+	} `yaml:"requirements"`
+
 	Metadata struct {
 		CreatedAt        time.Time `yaml:"created_at"`
 		Priority         string    `yaml:"priority"`
 		Status           string    `yaml:"status"`
 		AssignedAgents   []string  `yaml:"assigned_agents"`
+		AssignmentReason string    `yaml:"assignment_reason"`
 		EstimatedDuration string   `yaml:"estimated_duration"`
 		ActualDuration   string    `yaml:"actual_duration"`
 	} `yaml:"metadata"`

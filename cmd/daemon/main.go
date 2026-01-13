@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/codeflow/orchestrator/internal/agent"
 	"github.com/codeflow/orchestrator/internal/api"
 	"github.com/codeflow/orchestrator/internal/config"
 	"github.com/codeflow/orchestrator/internal/orchestrator"
@@ -192,6 +194,12 @@ func startAPIServer(port int, orch *orchestrator.Orchestrator, wsHub *api.Hub) *
 			}
 
 			if err := orch.RegisterExternalAgent(req.Name, req.Provider, req.Model); err != nil {
+				if errors.Is(err, agent.ErrAgentAlreadyRegistered) {
+					// 409 Conflict - Agent already exists (not an error from CLI perspective)
+					w.WriteHeader(http.StatusConflict) 
+					w.Write([]byte(`{"status":"already_registered"}`))
+					return
+				}
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}

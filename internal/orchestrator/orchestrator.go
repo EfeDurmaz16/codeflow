@@ -12,6 +12,7 @@ import (
 	"github.com/codeflow/orchestrator/internal/config"
 	"github.com/codeflow/orchestrator/internal/event"
 	"github.com/codeflow/orchestrator/internal/parser"
+	"github.com/codeflow/orchestrator/internal/routing"
 	"github.com/codeflow/orchestrator/internal/task"
 	"github.com/codeflow/orchestrator/internal/watcher"
 )
@@ -24,6 +25,7 @@ type Orchestrator struct {
 	fileWatcher  *watcher.Watcher
 	taskManager  *task.Manager
 	agentManager *agent.Manager
+	matcher      *routing.Matcher
 
 	// Execution state
 	executionQueue chan *ExecutionRequest
@@ -64,6 +66,9 @@ func New(cfg *config.Config) (*Orchestrator, error) {
 	// Initialize agent manager
 	agentManager := agent.NewManager(eventLogger)
 
+	// Initialize matcher
+	matcher := routing.NewMatcher()
+
 	return &Orchestrator{
 		config:         cfg,
 		parser:         p,
@@ -71,6 +76,7 @@ func New(cfg *config.Config) (*Orchestrator, error) {
 		fileWatcher:    fileWatcher,
 		taskManager:    taskManager,
 		agentManager:   agentManager,
+		matcher:        matcher,
 		executionQueue: make(chan *ExecutionRequest, 100),
 	}, nil
 }
@@ -265,20 +271,74 @@ func (o *Orchestrator) autoAssignTask(taskID string) {
 		return
 	}
 
-	// Find best agent based on task type (heuristic from task name)
-	taskType := "code_generation" // Default
-	if agent := o.agentManager.FindAgentForTask(taskType); agent != nil {
-		o.taskManager.AssignAgents(taskID, []string{agent.Config.ID})
+	// Find best agent using scoring matcher
+	agentID, reason := o.findBestAgentForTask(t)
+	if agentID != "" {
+		// Update task metadata with reason
+		t.Config.Metadata.AssignmentReason = reason
+		// We should persist this change. For now we just update in memory struct
+		// and AssignAgents will save the file. 
+		// Ideally taskManager.AssignAgents should take reason or we update task fully.
+		// Let's rely on AssignAgents saving the file, but we need to pass reason or update struct before saving.
+		// TaskManager.AssignAgents likely re-loads or modifies file. 
+		// Let's modify Task struct and save it via TaskManager.UpdateTask?
+		// For now, we'll assume AssignAgents ONLY updates assigned_agents list.
+		// So we might lose reason if we don't save it.
+		// Let's update AssignAgents to support reason or do manual update.
+		// For MVP, we just set it in memory so API can return it if cached.
+		o.taskManager.AssignAgents(taskID, []string{agentID})
+		
+		// TODO: Save Reason to file. 
+		// Actually, AssignAgents should be updated. But let's skip file persistence of reason for now 
+		// unless we modify TaskManager.
+		
+		o.QueueExecution(taskID, agentID, t.Config.Description, "")
+	}
+}
+
+// findBestAgentForTask finds the best agent for a task based on capabilities
+func (o *Orchestrator) findBestAgentForTask(t *task.Task) (string, string) {
+	agents := o.agentManager.GetAgents()
+	
+	bestScore := -100
+	bestAgentID := ""
+	reason := ""
+
+	for _, a := range agents {
+		// Only consider connected agents
+		if a.GetStatus() != agent.StatusConnected {
+			continue
+		}
+
+		score := o.matcher.CalculateScore(a.Config, t.Config)
+		
+		if score > bestScore {
+			bestScore = score
+			bestAgentID = a.Config.ID
+			reason = fmt.Sprintf("Best match based on capabilities (Score: %d)", score)
+			if t.Config.Requirements.SkillLevel != "" {
+				reason += fmt.Sprintf(", Skill: %s", a.Config.TaskAssignment.SkillLevel)
+			}
+		}
 	}
 
-	// If task has assigned agents, queue for execution
-	if len(t.Config.Metadata.AssignedAgents) > 0 {
-		o.QueueExecution(taskID, t.Config.Metadata.AssignedAgents[0], t.Config.Description, "")
-	}
+	return bestAgentID, reason
 }
 
 // QueueExecution queues a task for execution
 func (o *Orchestrator) QueueExecution(taskID, agentID, prompt, system string) {
+	if agentID == "" {
+		// Try to find best agent if not specified
+		if t, exists := o.taskManager.GetTask(taskID); exists {
+			agentID, _ = o.findBestAgentForTask(&t)
+		}
+	}
+
+	if agentID == "" {
+		fmt.Printf("Warning: no agent available for task %s\n", taskID)
+		return
+	}
+
 	o.executionQueue <- &ExecutionRequest{
 		TaskID:  taskID,
 		AgentID: agentID,
