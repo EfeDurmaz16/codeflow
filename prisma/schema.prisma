@@ -1,0 +1,254 @@
+// CodeFlow Database Schema
+// Multi-Agent Orchestration Dashboard
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Agent types supported by the system
+enum AgentType {
+  cursor
+  windsurf
+  claude_code
+  codex
+  gemini
+  aider
+  custom
+}
+
+// Agent status values
+enum AgentStatus {
+  online
+  offline
+  busy
+  error
+}
+
+// Task status values
+enum TaskStatus {
+  queued
+  assigned
+  running
+  completed
+  failed
+}
+
+// Task priority levels
+enum TaskPriority {
+  critical
+  high
+  normal
+  low
+}
+
+// Workflow status
+enum WorkflowStatus {
+  active
+  paused
+  draft
+}
+
+// Workflow node types
+enum WorkflowNodeType {
+  start
+  end
+  task
+  condition
+  parallel
+  join
+}
+
+// Agent model - represents an AI coding agent
+model Agent {
+  id           String      @id @default(cuid())
+  name         String
+  type         AgentType
+  status       AgentStatus @default(offline)
+  endpoint     String
+  apiKey       String?     // Encrypted API key if needed
+  capabilities String[]    // Languages, frameworks, tools
+
+  // Metrics
+  cpuUsage     Float       @default(0)
+  memoryUsage  Float       @default(0)
+  tokensUsed   Int         @default(0)
+  totalCost    Float       @default(0)
+  latencyMs    Int         @default(0)
+
+  // Current task reference
+  currentTask   Task?      @relation("CurrentTask", fields: [currentTaskId], references: [id])
+  currentTaskId String?    @unique
+
+  // Timestamps
+  lastPingAt    DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  assignedTasks Task[]     @relation("AssignedTasks")
+  logs          AgentLog[]
+
+  @@index([status])
+  @@index([type])
+}
+
+// Agent log entries
+model AgentLog {
+  id        String   @id @default(cuid())
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  level     String   // info, warn, error, debug
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([agentId, createdAt])
+}
+
+// Task model - represents work to be done by agents
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String       @db.Text
+  status      TaskStatus   @default(queued)
+  priority    TaskPriority @default(normal)
+
+  // Assignment
+  assignedAgentId String?
+  assignedAgent   Agent?   @relation("AssignedTasks", fields: [assignedAgentId], references: [id])
+  currentAgent    Agent?   @relation("CurrentTask")
+
+  // Assignment method
+  assignmentMethod String? // manual, round-robin, capability-based
+
+  // Workflow relation
+  workflowId     String?
+  workflow       Workflow? @relation(fields: [workflowId], references: [id])
+  workflowNodeId String?
+
+  // Task hierarchy
+  parentTaskId String?
+  parentTask   Task?   @relation("Subtasks", fields: [parentTaskId], references: [id])
+  subtasks     Task[]  @relation("Subtasks")
+
+  // Dependencies
+  dependsOn    TaskDependency[] @relation("DependentTask")
+  dependedBy   TaskDependency[] @relation("DependencyTask")
+
+  // File context
+  files        String[]  // Related file paths
+
+  // Results
+  output       String?   @db.Text
+  errorMessage String?
+
+  // Timestamps
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  logs        TaskLog[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([assignedAgentId])
+}
+
+// Task dependencies
+model TaskDependency {
+  id            String @id @default(cuid())
+  dependentId   String
+  dependencyId  String
+  dependent     Task   @relation("DependentTask", fields: [dependentId], references: [id], onDelete: Cascade)
+  dependency    Task   @relation("DependencyTask", fields: [dependencyId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentId, dependencyId])
+}
+
+// Task log entries
+model TaskLog {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  level     String   // info, warn, error, debug
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([taskId, createdAt])
+}
+
+// Workflow model - defines multi-agent workflows
+model Workflow {
+  id          String         @id @default(cuid())
+  name        String
+  description String?        @db.Text
+  status      WorkflowStatus @default(draft)
+
+  // DAG definition as JSON
+  graph       Json           // Array of WorkflowNode objects
+
+  // Triggers
+  triggers    String[]       // manual, schedule, webhook, etc.
+
+  // Template category
+  category    String?        // full-stack-dev, bug-fix, code-review, docs
+  isTemplate  Boolean        @default(false)
+
+  // Timestamps
+  lastRunAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  tasks       Task[]
+  runs        WorkflowRun[]
+
+  @@index([status])
+  @@index([isTemplate])
+}
+
+// Workflow run instance
+model WorkflowRun {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  status     String   // pending, running, completed, failed
+
+  // Run data
+  context    Json?    // Variables and data passed between nodes
+
+  // Timestamps
+  startedAt  DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([workflowId, startedAt])
+}
+
+// Settings model - API keys and configurations
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  encrypted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// File lock model - for workspace file locking
+model FileLock {
+  id        String   @id @default(cuid())
+  path      String   @unique
+  agentId   String
+  lockedAt  DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([path])
+  @@index([expiresAt])
+}

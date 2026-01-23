@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: codeflow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codeflow
+      POSTGRES_PASSWORD: codeflow
+      POSTGRES_DB: codeflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeflow -d codeflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis (optional - for caching and pub/sub)
+  redis:
+    image: redis:7-alpine
+    container_name: codeflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # CodeFlow App
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: codeflow-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://codeflow:codeflow@postgres:5432/codeflow?schema=public
+      REDIS_URL: redis://redis:6379
+      WS_PORT: 3001
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_WS_URL: ws://localhost:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./workspace:/app/workspace
+
+volumes:
+  postgres_data:
+  redis_data:
