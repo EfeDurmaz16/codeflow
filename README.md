@@ -1,265 +1,308 @@
+<div align="center">
+
 # CodeFlow
 
-**Multi-Agent Orchestration Dashboard** - A Flower-like monitoring system for AI coding agents.
+### Multi-Agent Orchestration Dashboard
 
-Monitor and orchestrate AI coding agents including Cursor, Windsurf, Claude Code, Codex, Gemini CLI, and Aider from a single premium dashboard.
+A Flower-like monitoring and orchestration system for AI coding agents.
+
+Manage **Cursor**, **Windsurf**, **Claude Code**, **Codex**, **Gemini CLI**, and **Aider** from a single dashboard.
+
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-7.0-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://prisma.io/)
+
+[Features](#features) • [Quick Start](#quick-start) • [Documentation](#documentation) • [Contributing](#contributing)
+
+---
+
+</div>
+
+## Overview
+
+CodeFlow is a centralized command center for managing multiple AI coding agents. Monitor health, assign tasks, build workflows, and track costs—all in real-time.
+
+<br>
 
 ## Features
 
-### Agent Registry
-- Auto-discover and manual registration of agents
-- Support for multiple agent types: Cursor, Windsurf, Claude Code, Codex, Gemini CLI, Aider, Custom
-- Real-time health status: online/offline/busy/error with latency monitoring
-- Capabilities matrix (languages, frameworks, tools)
+<table>
+<tr>
+<td width="50%">
 
-### Task Management
-- Create tasks with natural language descriptions
-- Priority levels: critical, high, normal, low
-- Multiple assignment methods: manual, round-robin, capability-based
-- Task dependencies and subtask decomposition
-- Kanban board and list views
+### 🤖 Agent Registry
+- Auto-discover and register agents
+- Health monitoring with latency tracking
+- Capability matrix for smart assignment
+- Support for 7 agent types
 
-### Real-Time Dashboard
-- Grid/list view of all agents
-- Per-agent metrics: CPU, memory, tokens used, cost
-- Live log streaming
-- Token usage and cost tracking
+</td>
+<td width="50%">
 
-### Workflow Builder
-- Visual DAG editor for multi-agent workflows
-- Parallel and sequential execution support
+### 📋 Task Management
+- Kanban board interface
+- Priority levels (critical → low)
+- Dependencies & subtasks
+- Multiple assignment strategies
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🔄 Workflow Builder
+- Visual DAG editor
+- Parallel & sequential execution
 - Conditional branching
-- Built-in templates: full-stack dev, bug fix, code review, docs
+- Pre-built templates
 
-### File Sync & Git Integration
-- Shared workspace across agents
-- File locking and conflict detection
-- Branch per task with auto-commit
-- Pull request creation
+</td>
+<td width="50%">
+
+### 📊 Real-Time Dashboard
+- Live agent status updates
+- CPU, memory, token metrics
+- Cost tracking per agent
+- WebSocket-powered updates
+
+</td>
+</tr>
+</table>
+
+<br>
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Node.js with tRPC
-- **Database**: PostgreSQL with Prisma ORM
-- **Real-time**: WebSocket for live updates
-- **State**: Zustand for client state management
-- **Workflow Editor**: React Flow for DAG visualization
+```
+Frontend        Next.js 16 · React 19 · TypeScript · Tailwind CSS · shadcn/ui
+State           Zustand
+API             tRPC
+Database        PostgreSQL · Prisma 7
+Real-time       WebSocket
+Workflow        React Flow
+```
 
-## Design System
+<br>
 
-- Premium, minimal aesthetic
-- **No gradients** - clean, flat design
-- Colors: Pure whites, deep blacks (#0A0A0A), electric blue accent (#0066FF)
-- Typography: Geist font family
-- Dark mode first
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 20+
-- PostgreSQL 16+
-- npm or yarn
+- PostgreSQL 15+ (or Docker)
 
-### Local Development
+### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/codeflow.git
-   cd codeflow
-   ```
+```bash
+# Clone
+git clone https://github.com/EfeDurmaz16/codeflow.git
+cd codeflow
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+# Install
+npm install
 
-3. **Set up environment variables**
-   ```bash
-   cp .env .env.local
-   ```
-
-   Update `.env.local` with your database credentials:
-   ```
-   DATABASE_URL="postgresql://user:password@localhost:5432/codeflow?schema=public"
-   ```
-
-4. **Set up the database**
-   ```bash
-   npx prisma migrate dev
-   ```
-
-5. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-6. **Open the dashboard**
-
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
-### Docker Development
-
-1. **Start all services**
-   ```bash
-   docker-compose up -d
-   ```
-
-2. **Run database migrations**
-   ```bash
-   docker-compose exec app npx prisma migrate deploy
-   ```
-
-3. **Access the dashboard**
-
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
-## Project Structure
-
-```
-codeflow/
-├── src/
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── (dashboard)/        # Dashboard layout group
-│   │   │   ├── page.tsx        # Main dashboard
-│   │   │   ├── agents/         # Agent management
-│   │   │   ├── tasks/          # Task management
-│   │   │   ├── workflows/      # Workflow builder
-│   │   │   └── settings/       # Settings page
-│   │   └── api/                # API routes
-│   │       └── trpc/           # tRPC handler
-│   ├── components/             # React components
-│   │   ├── ui/                 # shadcn/ui components
-│   │   ├── layout/             # Layout components
-│   │   ├── dashboard/          # Dashboard components
-│   │   ├── agents/             # Agent components
-│   │   ├── tasks/              # Task components
-│   │   └── workflows/          # Workflow components
-│   ├── lib/                    # Utilities
-│   │   ├── db/                 # Prisma client
-│   │   ├── trpc.ts             # tRPC client
-│   │   └── utils.ts            # Helper functions
-│   ├── server/                 # Server-side code
-│   │   ├── trpc/               # tRPC setup
-│   │   └── routers/            # tRPC routers
-│   ├── stores/                 # Zustand stores
-│   └── types/                  # TypeScript types
-├── prisma/
-│   └── schema.prisma           # Database schema
-├── public/                     # Static assets
-├── docker-compose.yml          # Docker configuration
-├── Dockerfile                  # Production container
-└── package.json
+# Environment
+cp .env.example .env
 ```
 
-## API Endpoints
+### Database Setup
 
-### Agents
-- `GET /api/trpc/agents.list` - List all agents
-- `GET /api/trpc/agents.get` - Get agent by ID
-- `POST /api/trpc/agents.create` - Create new agent
-- `POST /api/trpc/agents.update` - Update agent
-- `DELETE /api/trpc/agents.delete` - Delete agent
-- `POST /api/trpc/agents.ping` - Ping agent health
+```bash
+# Option 1: Docker (recommended)
+docker-compose up -d postgres
 
-### Tasks
-- `GET /api/trpc/tasks.list` - List all tasks
-- `GET /api/trpc/tasks.get` - Get task by ID
-- `GET /api/trpc/tasks.byStatus` - Get tasks grouped by status
-- `POST /api/trpc/tasks.create` - Create new task
-- `POST /api/trpc/tasks.update` - Update task
-- `POST /api/trpc/tasks.assign` - Assign task to agent
-- `DELETE /api/trpc/tasks.delete` - Delete task
+# Option 2: Local PostgreSQL
+# Update DATABASE_URL in .env
 
-### Workflows
-- `GET /api/trpc/workflows.list` - List all workflows
-- `GET /api/trpc/workflows.get` - Get workflow by ID
-- `GET /api/trpc/workflows.templates` - Get workflow templates
-- `POST /api/trpc/workflows.create` - Create new workflow
-- `POST /api/trpc/workflows.update` - Update workflow
-- `POST /api/trpc/workflows.run` - Run workflow
-- `POST /api/trpc/workflows.clone` - Clone workflow
-- `DELETE /api/trpc/workflows.delete` - Delete workflow
+# Generate Prisma client
+npx prisma generate
+npx prisma db push
+```
 
-### Settings
-- `GET /api/trpc/settings.list` - List all settings
-- `GET /api/trpc/settings.get` - Get setting by key
-- `POST /api/trpc/settings.set` - Set setting value
-- `DELETE /api/trpc/settings.delete` - Delete setting
+### Run
 
-## Data Models
+```bash
+npm run dev
+```
 
-### Agent
+Open **http://localhost:3000**
+
+<br>
+
+## Documentation
+
+### Project Structure
+
+```
+src/
+├── app/                      # Next.js App Router
+│   ├── (dashboard)/          # Dashboard pages
+│   │   ├── agents/           # Agent management
+│   │   ├── tasks/            # Task Kanban
+│   │   ├── workflows/        # Workflow builder
+│   │   └── settings/         # Configuration
+│   └── api/trpc/             # tRPC endpoint
+├── components/
+│   ├── ui/                   # shadcn/ui components
+│   ├── dashboard/            # Dashboard widgets
+│   ├── agents/               # Agent components
+│   ├── tasks/                # Task components
+│   └── workflows/            # Workflow editor
+├── lib/
+│   ├── db/                   # Prisma client
+│   └── websocket/            # WS client
+├── server/routers/           # tRPC routers
+├── stores/                   # Zustand stores
+└── types/                    # TypeScript types
+```
+
+### Pages
+
+| Route | Description |
+|:------|:------------|
+| `/` | Dashboard with agent grid and stats |
+| `/agents` | Agent list with search & filters |
+| `/agents/[id]` | Agent detail with logs |
+| `/tasks` | Task Kanban board |
+| `/tasks/[id]` | Task detail view |
+| `/workflows` | Workflow list |
+| `/workflows/[id]/edit` | Visual DAG editor |
+| `/settings` | API keys & configuration |
+
+### API Reference
+
+<details>
+<summary><b>Agents</b></summary>
+
+```
+GET     /api/trpc/agents.list       List all agents
+GET     /api/trpc/agents.get        Get agent by ID
+POST    /api/trpc/agents.create     Create agent
+POST    /api/trpc/agents.update     Update agent
+DELETE  /api/trpc/agents.delete     Delete agent
+POST    /api/trpc/agents.ping       Health check
+```
+</details>
+
+<details>
+<summary><b>Tasks</b></summary>
+
+```
+GET     /api/trpc/tasks.list        List all tasks
+GET     /api/trpc/tasks.get         Get task by ID
+GET     /api/trpc/tasks.byStatus    Tasks by status
+POST    /api/trpc/tasks.create      Create task
+POST    /api/trpc/tasks.update      Update task
+POST    /api/trpc/tasks.assign      Assign to agent
+DELETE  /api/trpc/tasks.delete      Delete task
+```
+</details>
+
+<details>
+<summary><b>Workflows</b></summary>
+
+```
+GET     /api/trpc/workflows.list    List workflows
+GET     /api/trpc/workflows.get     Get workflow
+POST    /api/trpc/workflows.create  Create workflow
+POST    /api/trpc/workflows.update  Update workflow
+POST    /api/trpc/workflows.run     Execute workflow
+POST    /api/trpc/workflows.clone   Clone workflow
+DELETE  /api/trpc/workflows.delete  Delete workflow
+```
+</details>
+
+### Data Models
+
 ```typescript
 interface Agent {
-  id: string;
-  name: string;
-  type: 'cursor' | 'windsurf' | 'claude_code' | 'codex' | 'gemini' | 'aider' | 'custom';
-  status: 'online' | 'offline' | 'busy' | 'error';
-  endpoint: string;
-  capabilities: string[];
-  currentTask?: string;
-  metrics: {
-    cpu: number;
-    memory: number;
-    tokensUsed: number;
-    cost: number;
-  };
+  id: string
+  name: string
+  type: 'cursor' | 'windsurf' | 'claude_code' | 'codex' | 'gemini' | 'aider' | 'custom'
+  status: 'online' | 'offline' | 'busy' | 'error'
+  endpoint: string
+  capabilities: string[]
+  metrics: { cpu: number; memory: number; tokensUsed: number; cost: number }
 }
-```
 
-### Task
-```typescript
 interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: 'queued' | 'assigned' | 'running' | 'completed' | 'failed';
-  priority: 'critical' | 'high' | 'normal' | 'low';
-  assignedAgent?: string;
-  subtasks: string[];
-  dependencies: string[];
+  id: string
+  title: string
+  description: string
+  status: 'queued' | 'assigned' | 'running' | 'completed' | 'failed'
+  priority: 'critical' | 'high' | 'normal' | 'low'
+  assignedAgentId?: string
+  dependencies: string[]
 }
-```
 
-### Workflow
-```typescript
 interface Workflow {
-  id: string;
-  name: string;
-  graph: WorkflowNode[];
-  triggers: string[];
-  status: 'active' | 'paused' | 'draft';
+  id: string
+  name: string
+  status: 'active' | 'paused' | 'draft'
+  graph: WorkflowNode[]
+  triggers: string[]
 }
 ```
 
-## Configuration
+<br>
 
-### Environment Variables
+## Design System
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | Required |
-| `WS_PORT` | WebSocket server port | `3001` |
-| `NEXT_PUBLIC_APP_URL` | Application URL | `http://localhost:3000` |
-| `NEXT_PUBLIC_WS_URL` | WebSocket URL | `ws://localhost:3001` |
+| Element | Value |
+|:--------|:------|
+| Background | `#0A0A0A` |
+| Card | `#141414` |
+| Border | `#262626` |
+| Accent | `#0066FF` |
+| Font | Geist Sans |
 
-### Settings (via UI)
+**Principles:** Dark mode first · No gradients · Minimal · High contrast
 
-- API Keys: OpenAI, Anthropic, Google AI, GitHub
-- Agent defaults: assignment method, auto-retry, timeout
-- Integrations: GitHub auto-commit, branch creation
-- Notifications: task completed/failed, agent offline
+<br>
+
+## Docker
+
+```bash
+# Development
+docker-compose up -d
+
+# Production build
+docker build -t codeflow .
+docker run -p 3000:3000 --env-file .env codeflow
+```
+
+<br>
+
+## Environment Variables
+
+| Variable | Description |
+|:---------|:------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `NEXT_PUBLIC_APP_URL` | Application URL |
+
+<br>
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+```bash
+# Fork & clone
+git checkout -b feature/amazing-feature
+git commit -m 'Add amazing feature'
+git push origin feature/amazing-feature
+# Open PR
+```
+
+<br>
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT © [Efe Durmaz](https://github.com/EfeDurmaz16)
+
+---
+
+<div align="center">
+
+**[⬆ Back to top](#codeflow)**
+
+</div>
